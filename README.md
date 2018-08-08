@@ -1,2 +1,2 @@
-# cerberus
+# Cerberus
 Encrypted Local Network Solution
