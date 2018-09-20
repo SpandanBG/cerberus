@@ -5,17 +5,24 @@ import (
 	"sync"
 )
 
-var Conn net.Conn
-var ConnMutex sync.Mutex
+var (
+	// Conn holds the connection to proxy router socket object
+	Conn net.Conn
+
+	// ConnMutex used to lock the Conn object when used by a thread
+	ConnMutex sync.Mutex
+)
 
 func init() {
 	go SetupConnection()
 }
 
-func main() {
-	LocalProxy()
-}
+// func main() {
+// 	LocalProxy()
+// }
 
+// LocalProxy method get's new HTTP request and proxies it through the
+// proxy routers
 func LocalProxy() {
 	if listen, lErr := net.Listen("tcp", "127.0.0.1:4121"); lErr == nil {
 		for conn, cErr := listen.Accept(); cErr == nil; conn, cErr = listen.Accept() {
@@ -47,6 +54,7 @@ func LocalProxy() {
 	}
 }
 
+// SetupConnection sets up the connection to the proxy router
 func SetupConnection() {
 	if conn, cErr := net.Dial("tcp", "127.0.0.1:4123"); cErr == nil {
 		Conn = conn
