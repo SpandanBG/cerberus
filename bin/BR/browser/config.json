@@ -1,0 +1,9 @@
+{
+    "Version"       : "1.0.0",
+    "Name"          : "Cerberus ProtoBR",
+    "Protocol"      : "tcp",
+    "Host"          : "192.168.43.174",
+    "Port"          : "7432",
+    "Platform"      : "",
+    "Environment"   : "development"
+}

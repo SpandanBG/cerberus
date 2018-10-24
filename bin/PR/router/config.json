@@ -1,0 +1,9 @@
+{
+    "Version"       : "1.0.0",
+    "Name"          : "Cerberus ProtoPI",
+    "Protocol"      : "tcp",
+    "Host"          : "127.0.0.1",
+    "Port"          : "8080",
+    "Platform"      : "",
+    "Environment"   : "development"
+}
