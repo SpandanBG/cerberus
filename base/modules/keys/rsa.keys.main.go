@@ -12,8 +12,6 @@ import (
 	conn "../connection"
 )
 
-const Version = 1
-
 type Keys struct {
 	RemotePublicKey *rsa.PublicKey
 	PrivateKey      *rsa.PrivateKey
@@ -25,7 +23,7 @@ func NewKeys() *Keys {
 
 func (keys *Keys) CreateRSAPair() error {
 	var err error
-	keys.PrivateKey, err = rsa.GenerateKey(rand.Reader, 2048)
+	keys.PrivateKey, err = rsa.GenerateKey(rand.Reader, 1024)
 	if err != nil {
 		return err
 	}
@@ -36,6 +34,7 @@ func (keys *Keys) ExportPublicKey() ([]byte, error) {
 	return json.Marshal(keys.PrivateKey.PublicKey)
 }
 
+/*Needs modification*/
 func (keys *Keys) GetRemotePublicKey(connect *conn.Connection) error {
 	head := &conn.Header{Version: 1, REQ: true, KX: true}
 	reqPacket, err := conn.GeneratePacket(head, []byte(""))

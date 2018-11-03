@@ -1,25 +1,47 @@
 package main
 
-// "log"
-
-// conn "./modules/connection"
-
-const (
-	BrtIP = "192.168.255.255"
-	IP    = "192.168.1.105"
-	Port  = 4123
+import (
+	c "./modules/connection"
+	e "./modules/error"
+	i "./modules/init"
+	k "./modules/keys"
+	"fmt"
 )
 
-// var RouterAddr *conn.Address
+//SYSTEM GLOBAL VARIABLES
+var (
+	/*Config : variable that stores the configurations*/
+	Config *i.Config
 
-func init() {
-	// searchProxyRouter()
-	// Load RSA Keys
-}
+	/*Keys : variable that store the private and remote public keys*/
+	Keys *k.Keys
+
+	/*Conn : variable that stores the connection*/
+	Conn *c.Connection
+
+	//error variable to store all errors
+	err error
+)
 
 func main() {
 
+	/*Loaded the Configuration*/
+	Config = i.NewConfig()
+	err = Config.LoadConfig()
+	e.ErrorHandler(err)
+
+	/*Generate the Keys*/
+	Keys = k.NewKeys()
+	err = Keys.CreateRSAPair()
+	e.ErrorHandler(err)
+
+	/*Search Proxy Router*/
+
+	//c.LocalListen(config)
 }
+
+// "log"
+// conn "./modules/connection"
 
 // func searchProxyRouter() {
 // 	connect := conn.NewConnection(conn.Address{IP: IP, Port: Port})
