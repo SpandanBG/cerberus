@@ -1,7 +1,7 @@
 package connections
 
 import (
-	e "../../error"
+	e "../error"
 	"bufio"
 	"fmt"
 	"io/ioutil"
@@ -58,46 +58,39 @@ to the Router.
 The encrypted Response received from the Router which is then
 decrypted by the Middleware and served to the browser.
 */
-func BrowserConnHandler(TConn net.Conn) {
+func BrowserConnHandler(B BrowserConn) {
 	var RQ, RP []byte
+	var Request *http.Request
 	var err error
-	DChan := make(chan []byte, 2048)
-	EChan := make(chan []byte, 2048)
 
 	TCReader := bufio.NewReader(TConn)
-	//TCWriter := bufio.NewWriter(TConn)
+	RQJson, err = http.ReadRequest(TCReader)
+	e.ErrorHandler(err)
+	RQ, err = httputil.DumpRequest(Request, true)
+	e.ErrorHandler(err)
 
-	var RQJson *http.Request
-
-	if RQJson, err = http.ReadRequest(TCReader); err == nil {
-		//fmt.Println(TConn.RemoteAddr(), "->", RQJson)
-		RQ, _ = httputil.DumpRequest(RQJson, true)
-		for {
-			select {
-			case DChan <- RQ:
-				if len(RQ) > 0 {
-					RQ = make([]byte, 0)
-					fmt.Println(TConn.RemoteAddr(), "->", RQJson)
-					EChan = Middleware(DChan)
-					if Req, ok := <-EChan; ok {
-						//fmt.Println("Encrypted Request : ", string(Req))
-						RP, err = RemoteDial(Req)
-						e.ErrorHandler(err)
-						//fmt.Println("Encrypted Response : ", RP)
-						EChan <- RP
-					}
+	for {
+		select {
+		case B.DChan <- RQ:
+			if len(RQ) > 0 {
+				RQ = make([]byte, 0)
+				B.EChan = Middleware(B.DChan)
+				if Req, ok := <-EChan; ok {
+					RP, err = RemoteDial(Req)
+					e.ErrorHandler(err)
+					EChan <- RP
 				}
-			default:
-				DChan = Middleware(EChan)
-				if RP, ok := <-DChan; ok {
-					fmt.Println(TConn.RemoteAddr(), "<-", string(RP))
-					n, err := TConn.Write(RP)
-					fmt.Println("Bytes : ", n, ":", err)
-					TConn.Close()
-					close(DChan)
-					close(EChan)
-					return
-				}
+			}
+		default:
+			B.DChan = Middleware(B.Chan)
+			if RP, ok := <-DChan; ok {
+				fmt.Println(TConn.RemoteAddr(), "<-", string(RP))
+				n, err := TConn.Write(RP)
+				fmt.Println("Bytes : ", n, ":", err)
+				TConn.Close()
+				close(DChan)
+				close(EChan)
+				return
 			}
 		}
 	}

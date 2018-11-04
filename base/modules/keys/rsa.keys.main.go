@@ -1,6 +1,7 @@
 package keys
 
 import (
+	conn "../connection"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
@@ -8,12 +9,11 @@ import (
 	"net"
 	"strconv"
 	"time"
-
-	conn "../connection"
 )
 
 type Keys struct {
 	RemotePublicKey *rsa.PublicKey
+	PublicKey       *rsa.PublicKey
 	PrivateKey      *rsa.PrivateKey
 }
 
@@ -30,8 +30,9 @@ func (keys *Keys) CreateRSAPair() error {
 	return nil
 }
 
-func (keys *Keys) ExportPublicKey() ([]byte, error) {
-	return json.Marshal(keys.PrivateKey.PublicKey)
+func (keys *Keys) ExportPublicKey() {
+	keys.PublicKey = &keys.PrivateKey.PublicKey
+	return
 }
 
 /*Needs modification*/

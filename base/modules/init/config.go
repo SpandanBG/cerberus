@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"runtime"
+	"strconv"
 )
 
 //SYSTEM CONSTANTS
@@ -21,7 +22,7 @@ Any changes to be made to the configuration needs to be made in
 file named as "config.json"
 */
 type Config struct {
-	Version     string `json:"version"`
+	Version     int    `json:"version"`
 	Name        string `json:"name"`
 	Protocol    string `json:"protocol"`
 	Host        string `json:"host"`

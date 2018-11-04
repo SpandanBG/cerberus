@@ -24,40 +24,34 @@ var (
 	err error
 )
 
-func main() {
-
-	/*Loaded the Configuration*/
+/*DoConfig : Configuration Initialization*/
+func DoConfig() {
 	Config = i.NewConfig()
 	err = Config.LoadConfig()
 	e.ErrorHandler(err)
+}
 
-	/*Generate the Keys*/
+/*DoKeys : RSA Keys Initialization*/
+func DoKeys() {
 	Keys = k.NewKeys()
 	err = Keys.CreateRSAPair()
 	e.ErrorHandler(err)
-
-	/*Search Proxy Router*/
-	Conn = c.NewConnection(Config.IP)
-	err = Conn.OpenUDPPort()
-	e.ErrorHandler(err)
-	fmt.Println(Config.BCast)
-	Conn.RemoteAddr, err = Conn.LaunchUDPTracer(Config.BCast)
-	e.ErrorHandler(err)
-
-	//c.LocalListen(config)
+	SearchProxyRouter()
+	Keys.GetRemotePublicKey(Conn)
 }
 
-// "log"
-// conn "./modules/connection"
+/*SearchProxyRouter : Establish connection to Proxy Router*/
+func SearchProxyRouter() {
+	Conn = c.NewConnection(Config.IP + Config.Port)
+	err = Conn.OpenUDPPort()
+	e.ErrorHandler(err)
 
-// func searchProxyRouter() {
-// 	connect := conn.NewConnection(conn.Address{IP: IP, Port: Port})
-// 	err := connect.OpenUDPPort()
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-// 	RouterAddr, err = connect.LaunchUDPTracer(conn.Address{IP: BrtIP, Port: Port})
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-// }
+	//fmt.Println(Config.BCast)
+	Conn.RemoteAddr, err = Conn.LaunchUDPTracer(Config.BCast + Config.Port)
+	e.ErrorHandler(err)
+}
+
+func main() {
+	DoConfig()
+	DoKeys()
+}

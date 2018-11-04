@@ -29,7 +29,7 @@ func (conn *Connection) OpenUDPPort() error {
 }
 
 func (conn Connection) LaunchUDPTracer(tracingAddr string) (*net.UDPAddr, error) {
-	BCast, err := net.ResolveUDPAddr("udp", tracingAddr+":4123")
+	BCast, err := net.ResolveUDPAddr("udp", tracingAddr)
 	if err != nil {
 		fmt.Println(err)
 	}
