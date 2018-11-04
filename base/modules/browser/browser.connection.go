@@ -2,6 +2,7 @@ package browser
 
 import (
 	e "../error"
+	i "../init"
 	k "../keys"
 	u "../utils"
 	"bufio"
@@ -59,23 +60,24 @@ to the Router.
 The encrypted Response received from the Router which is then
 decrypted by the Middleware and served to the browser.
 */
-func BrowserConnHandler(B BrowserConn, K k.Keys, RemoteAddr string) {
+func BrowserConnHandler(B BrowserConn, K *k.Keys, C i.Config) {
 	var RQ, RP []byte
 	var Request *http.Request
 	var err error
+	RemoteAddr := C.RemoteAddr + ":" + C.Port
 
-	TCReader := bufio.NewReader(*B.Conn)
+	TCReader := bufio.NewReader(B.Conn)
 	Request, err = http.ReadRequest(TCReader)
 	e.ErrorHandler(err)
 	RQ, err = u.GOBEncode(Request)
 	e.ErrorHandler(err)
-
+	RQHeader := InitPacketHeader(&B, C.Version, K.PublicKey)
 	for {
 		select {
 		case B.DChan <- RQ:
 			if len(RQ) > 0 {
 				RQ = make([]byte, 0)
-				B.EChan = EncryptChannel(B.DChan, B.RQPacket, &K)
+				B.EChan = EncryptChannel(RQHeader, B.DChan, B.RQPacket, K)
 				if ReqBytes, ok := <-B.EChan; ok {
 					RP, err = RemoteDial(ReqBytes, RemoteAddr)
 					e.ErrorHandler(err)
@@ -83,8 +85,8 @@ func BrowserConnHandler(B BrowserConn, K k.Keys, RemoteAddr string) {
 				}
 			}
 		default:
-			B.DChan = DecryptChannel(B.EChan, B.RSPacket, &K)
-			if RespBytes, ok := <-B.DChan; ok {
+			B.DChan = DecryptChannel(B.EChan, B.RSPacket, K)
+			if _, ok := <-B.DChan; ok {
 				//n, err := TConn.Write(RP)
 				B.CloseBrowserConn()
 				return

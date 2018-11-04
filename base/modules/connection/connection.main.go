@@ -1,6 +1,7 @@
 package connection
 
 import (
+	u "../utils"
 	"errors"
 	"fmt"
 	"log"
@@ -28,7 +29,7 @@ func (conn *Connection) OpenUDPPort() error {
 	return nil
 }
 
-func (conn Connection) LaunchUDPTracer(tracingAddr string) (*net.UDPAddr, error) {
+func (conn Connection) LaunchUDPTracer(ownAddr string, tracingAddr string) (*net.UDPAddr, error) {
 	BCast, err := net.ResolveUDPAddr("udp", tracingAddr)
 	if err != nil {
 		fmt.Println(err)
@@ -37,7 +38,7 @@ func (conn Connection) LaunchUDPTracer(tracingAddr string) (*net.UDPAddr, error)
 		return nil, errors.New("No UDP Server Setup Found")
 	}
 	requestPacket, err := CreateTracerPacket()
-	responsePacket := make([]byte, len(requestPacket)+10)
+	responsePacket := make([]byte, len(requestPacket)+160)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -45,15 +46,15 @@ func (conn Connection) LaunchUDPTracer(tracingAddr string) (*net.UDPAddr, error)
 		timeout := time.Now().Add(time.Second * 5)
 		for time.Now().Before(timeout) {
 			fmt.Println("Tracing... Attempt", i)
+			var P Packet
+			u.GOBDecode(requestPacket, P)
+			fmt.Println(P)
 			conn.UDP.WriteToUDP(requestPacket, BCast)
 			fmt.Println("Written!", BCast)
 			for {
-				fmt.Println("Written!")
-				_, addr, _ := conn.UDP.ReadFromUDP(responsePacket)
-				fmt.Println("Written!")
-				fmt.Println(addr)
-				if addr.IP.String() != conn.LocalAddr.IP.String() {
-					if TracerResponseValid(responsePacket) == true {
+				n, addr, _ := conn.UDP.ReadFromUDP(responsePacket)
+				if addr.IP.String() != ownAddr {
+					if TracerResponseValid(responsePacket[:n]) == true {
 						return addr, nil
 					}
 					break
@@ -66,6 +67,7 @@ func (conn Connection) LaunchUDPTracer(tracingAddr string) (*net.UDPAddr, error)
 
 func TracerResponseValid(response []byte) bool {
 	head, _, _, err := ParserPacketBytes(response)
+	fmt.Println("this ", head)
 	if err != nil {
 		return false
 	}
@@ -76,7 +78,7 @@ func TracerResponseValid(response []byte) bool {
 }
 
 func CreateTracerPacket() ([]byte, error) {
-	head := &Header{DREQ: true}
+	head := &Header{Version: 1, DREQ: true}
 	body := []byte("")
 	return GeneratePacket(head, nil, body)
 }

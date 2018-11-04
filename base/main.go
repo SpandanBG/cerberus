@@ -1,6 +1,7 @@
 package main
 
 import (
+	b "./modules/browser"
 	c "./modules/connection"
 	e "./modules/error"
 	i "./modules/init"
@@ -47,7 +48,7 @@ func SearchProxyRouter() {
 	e.ErrorHandler(err)
 
 	//fmt.Println(Config.BCast)
-	Conn.RemoteAddr, err = Conn.LaunchUDPTracer(Config.BCast + Config.Port)
+	Conn.RemoteAddr, err = Conn.LaunchUDPTracer(Config.IP, Config.BCast+":"+Config.Port)
 	Config.RemoteAddr = Conn.RemoteAddr.String()
 	e.ErrorHandler(err)
 }
@@ -55,4 +56,5 @@ func SearchProxyRouter() {
 func main() {
 	DoConfig()
 	DoKeys()
+	b.LocalListen(Config, Keys)
 }

@@ -16,24 +16,30 @@ type Header struct {
 
 type Packet struct {
 	Header byte
-	Key    *rsa.PublicKey
+	Key    rsa.PublicKey
 	Body   []byte
 }
 
 func GeneratePacket(header *Header, key *rsa.PublicKey, body []byte) ([]byte, error) {
+	var keyCopy rsa.PublicKey
+	if key == nil {
+		keyCopy = rsa.PublicKey{}
+	} else {
+		keyCopy = *key
+	}
 	head := CreateHeaderByte(header)
-	packet := Packet{Header: head, Key: key, Body: body}
+	packet := Packet{Header: head, Key: keyCopy, Body: body}
 	return utils.GOBEncode(packet)
 }
 
 func ParserPacketBytes(raw []byte) (*Header, *rsa.PublicKey, []byte, error) {
 	var packet Packet
-	err := utils.GOBDecode(raw, packet)
+	err := utils.GOBDecode(raw, &packet)
 	if err != nil {
 		return nil, nil, []byte{}, err
 	}
 	head := TranslateHeaderByte(packet.Header)
-	return head, packet.Key, packet.Body, nil
+	return head, &packet.Key, packet.Body, nil
 }
 
 func CreateHeaderByte(head *Header) byte {

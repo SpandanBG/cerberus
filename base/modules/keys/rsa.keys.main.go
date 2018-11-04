@@ -2,13 +2,13 @@ package keys
 
 import (
 	conn "../connection"
+	"bufio"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
-	"encoding/json"
+	"fmt"
 	"net"
 	"strconv"
-	"time"
 )
 
 type Keys struct {
@@ -43,20 +43,22 @@ func (keys *Keys) GetRemotePublicKey(connect *conn.Connection) error {
 		return err
 	}
 	remoteAddr := connect.RemoteAddr.IP.String() + ":" + strconv.Itoa(connect.RemoteAddr.Port)
-	udpConn, err := net.Dial("udp", remoteAddr)
+	TConn, err := net.Dial("tcp", remoteAddr)
 	if err != nil {
 		return err
 	}
+
+	writer := bufio.NewWriter(TConn)
 	resPacket := make([]byte, 5620)
-	for i := 1; i <= 10; i++ {
-		if _, err := udpConn.Write(reqPacket); err == nil {
-			udpConn.SetReadDeadline(time.Now().Add(time.Second * 5))
-			if n, err := udpConn.Read(resPacket); err == nil {
-				err = json.Unmarshal(resPacket[:n], keys.RemotePublicKey)
-				if err != nil {
-					return err
-				}
-				break
+	if n, err := writer.Write(reqPacket); err == nil {
+		writer.Flush()
+		fmt.Println(remoteAddr, "BYtes Written : ", n)
+		// udpConn.SetReadDeadline(time.Now().Add(time.Second * 5))
+		if n, err := TConn.Read(resPacket); err == nil {
+			fmt.Println(remoteAddr, "BYtes Written : ", n)
+			_, keys.RemotePublicKey, _, err = conn.ParserPacketBytes(resPacket[:n])
+			if err != nil {
+				return err
 			}
 		}
 	}
