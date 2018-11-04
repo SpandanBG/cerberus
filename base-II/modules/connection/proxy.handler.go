@@ -1,8 +1,8 @@
 package connection
 
 import (
-	"fmt"
 	"crypto/rsa"
+	"fmt"
 	"net/http"
 
 	"../configs"
@@ -14,13 +14,14 @@ func ProxyHandler(reqRaw []byte, rAddr string) (resRaw []byte, err error) {
 	header, pubkey, body, err := ParserPacketBytes(reqRaw)
 	if err == nil {
 		if IsHTTPRequestPacket(header) {
+			fmt.Println("Proxy Request From :", rAddr)
 			httpResponse, err := MakeHTTPRequest(body)
 			if err == nil {
 				resRaw, err = GenerateHTTPPacket(httpResponse, pubkey)
 			}
 		} else if IsKeyExchangePacket(header) {
 			fmt.Println("Public Key Request From : " + rAddr)
-			resRaw, err = GeneratePublicKeyPacket()			
+			resRaw, err = GeneratePublicKeyPacket()
 		}
 	}
 	return
@@ -73,7 +74,7 @@ func GenerateHTTPPacket(body []byte, pubkey *rsa.PublicKey) ([]byte, error) {
 func IsHTTPRequestPacket(header *Header) bool {
 	required := header.Version == configs.VERSION
 	required = required && header.REQ
-	notRequired := header.DREQ && header.RES && header.KX
+	notRequired := header.DREQ || header.RES || header.KX
 	return required && !notRequired
 }
 
@@ -81,6 +82,6 @@ func IsHTTPRequestPacket(header *Header) bool {
 func IsKeyExchangePacket(header *Header) bool {
 	required := header.Version == configs.VERSION
 	required = required && header.REQ && header.KX
-	notRequired := header.DREQ && header.RES
+	notRequired := header.DREQ || header.RES
 	return required && !notRequired
 }

@@ -25,7 +25,7 @@ func main() {
 	Connection.OpenTCPPort()
 	fmt.Println("Proxy Server Open")
 	fmt.Println("****************** PROTECTED BY CERBERUS ******************")
-	fmt.Println(configs.ART)
+	fmt.Println(configs.ART, "\n\n")
 	for {
 		if incoming, err := Connection.TCP.Accept(); err == nil {
 			go proxyHTTPRequest(incoming)
@@ -62,8 +62,6 @@ func proxyHTTPRequest(conn net.Conn) {
 	rAddr := conn.RemoteAddr().String()
 	reader := bufio.NewReader(conn)
 	writer := bufio.NewWriter(conn)
-	defer writer.Flush()
-	defer conn.Close()
 	reqPacket := make([]byte, configs.HTTPHEADERSIZE+configs.CERBERUSHEADERSIZE)
 	n, err := reader.Read(reqPacket)
 	if err != nil {
@@ -76,4 +74,5 @@ func proxyHTTPRequest(conn net.Conn) {
 		return
 	}
 	writer.Write(resPacket)
+	writer.Flush()
 }

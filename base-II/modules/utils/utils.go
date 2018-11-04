@@ -47,8 +47,7 @@ func GOBEncode(input interface{}) ([]byte, error) {
 
 // GOBDecode : Decodes the input bytes to the interface type
 func GOBDecode(input []byte, output interface{}) error {
-	var buffer bytes.Buffer
-	buffer.Write(input)
-	dec := gob.NewDecoder(&buffer)
+	buffer := bytes.NewBuffer(input)
+	dec := gob.NewDecoder(buffer)
 	return dec.Decode(output)
 }

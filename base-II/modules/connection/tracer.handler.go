@@ -25,16 +25,16 @@ func RunTracerServer(conn *net.UDPConn) {
 func SendTracerResponse(packet []byte, conn *net.UDPConn, addr *net.UDPAddr) {
 	reqHeader, _, _, err := ParserPacketBytes(packet)
 	if err != nil {
-		fmt.Println("Tracer Packet From " + addr.String() + " Error : " + err.Error())
+		fmt.Println("Tracer Packet From " + addr.String() + " Error_1 : " + err.Error())
 		return
 	}
 	if VerifyTracerPacket(reqHeader) == false {
-		fmt.Println("Tracer Packet From " + addr.String() + " Error : " + err.Error())
+		fmt.Println("Tracer Packet From " + addr.String() + " Error_2 : Invalid Tracer Packet")
 		return
 	}
 	resPacket, err := GeneratePacket(&Header{Version: configs.VERSION, DREQ: true, RES: true}, nil, []byte{})
 	if err != nil {
-		fmt.Println("Tracer Packet From " + addr.String() + " Error : " + err.Error())
+		fmt.Println("Tracer Packet From " + addr.String() + " Error_3 : " + err.Error())
 		return
 	}
 	conn.WriteToUDP(resPacket, addr)
@@ -44,6 +44,6 @@ func SendTracerResponse(packet []byte, conn *net.UDPConn, addr *net.UDPAddr) {
 func VerifyTracerPacket(header *Header) bool {
 	required := header.Version == configs.VERSION
 	required = required && header.DREQ
-	notRequired := header.REQ && header.RES && header.KX
+	notRequired := header.REQ || header.RES || header.KX
 	return required && !notRequired
 }

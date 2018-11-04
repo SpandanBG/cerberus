@@ -10,7 +10,7 @@ const (
 	// PORT :
 	PORT = "4123"
 	// CERBERUSHEADERSIZE : Cerberus packet size
-	CERBERUSHEADERSIZE = 129 //bytes
+	CERBERUSHEADERSIZE = 244 //bytes
 	// HTTPHEADERSIZE : Max HTTP header size
 	HTTPHEADERSIZE = 16384 //bytes
 	// ART :
@@ -28,11 +28,11 @@ const (
    _d####M@PPPP@@M#######Mmp gm#########@@PPP9@M####m_             
   a###""          ,Z"#####@" '######"\g          ""M##m            
  J#@"             0L  "*##     ##@"  J#              *#K           
- #"               `+"`#    \"_gmwgm_~    dF               `"+`#_          
+ #"               ` + "`#    \"_gmwgm_~    dF               `" + `#_          
 7F                 "#_   ]#####F   _dK                 JE          
 ]                    *m__ ##### __g@"                   F          
                        "PJ#####LP"                                 
- `+"`"+`                       0######_                      '           
+ ` + "`" + `                       0######_                      '           
                        _0########_                                   
      .               _d#####^#####m__              ,              
       "*w_________am#####P"   ~9#####mw_________w*"                  
