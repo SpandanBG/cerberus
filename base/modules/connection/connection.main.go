@@ -9,13 +9,14 @@ import (
 )
 
 type Connection struct {
-	LocalAddr *net.UDPAddr
+	LocalAddr  *net.UDPAddr
 	RemoteAddr *net.UDPAddr
-	UDP  *net.UDPConn
+	UDP        *net.UDPConn
 }
 
-func NewConnection(addr *net.UDPAddr) *Connection {
-	return &Connection{LocalAddr: addr}
+func NewConnection(addr string) *Connection {
+	Local, _ := net.ResolveUDPAddr("udp", addr)
+	return &Connection{LocalAddr: Local}
 }
 
 func (conn *Connection) OpenUDPPort() error {
@@ -27,7 +28,11 @@ func (conn *Connection) OpenUDPPort() error {
 	return nil
 }
 
-func (conn Connection) LaunchUDPTracer(tracingAddr *net.UDPAddr) (*net.UDPAddr, error) {
+func (conn Connection) LaunchUDPTracer(tracingAddr string) (*net.UDPAddr, error) {
+	BCast, err := net.ResolveUDPAddr("udp", tracingAddr+":4123")
+	if err != nil {
+		fmt.Println(err)
+	}
 	if conn.UDP == nil {
 		return nil, errors.New("No UDP Server Setup Found")
 	}
@@ -40,9 +45,12 @@ func (conn Connection) LaunchUDPTracer(tracingAddr *net.UDPAddr) (*net.UDPAddr, 
 		timeout := time.Now().Add(time.Second * 5)
 		for time.Now().Before(timeout) {
 			fmt.Println("Tracing... Attempt", i)
-			conn.UDP.WriteToUDP(requestPacket, tracingAddr)
+			conn.UDP.WriteToUDP(requestPacket, BCast)
+			fmt.Println("Written!", BCast)
 			for {
+				fmt.Println("Written!")
 				_, addr, _ := conn.UDP.ReadFromUDP(responsePacket)
+				fmt.Println("Written!")
 				fmt.Println(addr)
 				if addr.IP.String() != conn.LocalAddr.IP.String() {
 					if TracerResponseValid(responsePacket) == true {

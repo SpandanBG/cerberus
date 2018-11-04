@@ -6,6 +6,7 @@ import (
 	i "./modules/init"
 	k "./modules/keys"
 	"fmt"
+	// "net"
 )
 
 //SYSTEM GLOBAL VARIABLES
@@ -36,6 +37,12 @@ func main() {
 	e.ErrorHandler(err)
 
 	/*Search Proxy Router*/
+	Conn = c.NewConnection(Config.IP)
+	err = Conn.OpenUDPPort()
+	e.ErrorHandler(err)
+	fmt.Println(Config.BCast)
+	Conn.RemoteAddr, err = Conn.LaunchUDPTracer(Config.BCast)
+	e.ErrorHandler(err)
 
 	//c.LocalListen(config)
 }
