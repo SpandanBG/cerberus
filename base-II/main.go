@@ -1,47 +1,70 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"log"
+	"net"
 
-	conn "./modules/connection"
+	"./modules/configs"
+	"./modules/connection"
+	"./modules/keys"
 )
 
-const (
-	BrtIP = "192.168.1.255"
-	IP    = "192.168.1.104"
-	Port  = 4123
-)
+// RSAKeys : The RSA key pair
+var RSAKeys *keys.Keys
 
-var RouterAddr *conn.Address
+// Connection : The TCP and UDP connection
+var Connection *connection.Connection
 
 func init() {
-	// load rsa keys
-	go loadSearchRequestReceiver()
+	loadRSAKeyPair()
+	fmt.Println("RSA Keys Pairs Generated")
+	setupConnectionConfig()
+	fmt.Println("Connection Configurations Setup Done")
+	startTracerServer()
+	fmt.Println("Tracer Server Open")
 }
 
 func main() {
-	var a int
-	fmt.Scan(&a)
-	fmt.Println(a)
-}
-
-func loadSearchRequestReceiver() {
-	req := make([]byte, 5620)
-	udpServer := conn.NewConnection(conn.Address{IP: IP, Port: Port})
-	err := udpServer.OpenUDPPort()
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println("Tracer Listening Server Started")
+	// Start TCP Server
+	Connection.OpenTCPPort()
 	for {
-		if n, remoteAddr, err := udpServer.UDP.ReadFromUDP(req); err == nil {
-			fmt.Println(remoteAddr)
-			if conn.TracerRequestValid(req[:n]) {
-				if res, err := conn.CreateTracerRespnsePacket(); err == nil {
-					udpServer.UDP.WriteToUDP(res, remoteAddr)
-				}
-			}
+		if incoming, err := Connection.TCP.Accept(); err == nil {
+			go proxyHTTPRequest(&incoming)
 		}
 	}
+}
+
+func loadRSAKeyPair() {
+	RSAKeys = keys.NewKeys()
+	if err := RSAKeys.CreateRSAPair(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func setupConnectionConfig() {
+	addr := ":" + configs.PORT
+	Connection = connection.NewConnection(addr)
+}
+
+func startTracerServer() {
+	if err := Connection.OpenUDPPort(); err != nil {
+		log.Fatal(err)
+	}
+	connection.RunTracerServer(Connection.UDP)
+}
+
+func proxyHTTPRequest(conn *net.Conn) {
+	reader := bufio.NewReader(*conn)
+	writer := bufio.NewWriter(*conn)
+	buff := make([]byte, 1024)
+	n, err := reader.Read(buff)
+	if err != nil {
+		fmt.Println("HTTP Proxy Error : " + err.Error())
+		return
+	}
+	fmt.Println(buff[:n])
+	writer.Write([]byte("hello"))
+	writer.Flush()
 }

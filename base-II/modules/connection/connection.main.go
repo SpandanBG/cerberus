@@ -4,51 +4,30 @@ import (
 	"net"
 )
 
-type Address struct {
-	IP   string
-	Port int
-}
-
 type Connection struct {
-	Addr Address
-	TCP  *net.Conn
+	Addr string
+	TCP  *net.TCPListener
 	UDP  *net.UDPConn
 }
 
-func NewConnection(addr Address) *Connection {
+func NewConnection(addr string) *Connection {
 	return &Connection{Addr: addr}
 }
 
-func (conn *Connection) OpenUDPPort() error {
-	udpServerAddr := TranslateAddressToUDPAddr(conn.Addr)
-	udpConn, err := net.ListenUDP("udp", udpServerAddr)
-	if err != nil {
-		return err
+func (conn *Connection) OpenTCPPort() (err error) {
+	var tcpAddr *net.TCPAddr
+	tcpAddr, err = net.ResolveTCPAddr("tcp", conn.Addr)
+	if err == nil {
+		conn.TCP, err = net.ListenTCP("tcp", tcpAddr)
 	}
-	conn.UDP = udpConn
-	return nil
+	return
 }
 
-func TranslateAddressToUDPAddr(addr Address) *net.UDPAddr {
-	return &net.UDPAddr{
-		IP:   net.ParseIP(addr.IP),
-		Port: addr.Port,
+func (conn *Connection) OpenUDPPort() (err error) {
+	var udpAddr *net.UDPAddr
+	udpAddr, err = net.ResolveUDPAddr("udp", conn.Addr)
+	if err == nil {
+		conn.UDP, err = net.ListenUDP("udp", udpAddr)
 	}
-}
-
-func TracerRequestValid(response []byte) bool {
-	head, _, err := ParserJSONPacket(response)
-	if err != nil {
-		return false
-	}
-	if head.DREQ {
-		return true
-	}
-	return false
-}
-
-func CreateTracerRespnsePacket() ([]byte, error) {
-	head := &Header{DREQ: true, RES: true}
-	body := []byte("")
-	return GeneratePacket(head, body)
+	return
 }
