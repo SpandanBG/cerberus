@@ -1,26 +1,24 @@
-package connections
+package browser
 
 import (
 	e "../error"
+	k "../keys"
+	u "../utils"
 	"bufio"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
-	"net/http/httputil"
 )
 
 /*RemoteDial : Dialing a remote connection to the
 router in order to fetch the response. Encrypted request sent to
 the router and an encrypted response is received.
 Request and Response are both in the form of []bytes*/
-func RemoteDial(Request []byte) ([]byte, error) {
+func RemoteDial(Request []byte, RAddr string) ([]byte, error) {
 	var Response []byte
 	var err error
-	RIP := "192.168.43.67"
-	RPort := "8080"
-	TAddr := RIP + ":" + RPort
-	if TConn, err := net.Dial("tcp", TAddr); err == nil {
+
+	if TConn, err := net.Dial("tcp", RAddr); err == nil {
 		defer TConn.Close()
 		if Response, err = GetRemoteResponse(TConn, Request); err == nil {
 			return Response, nil
@@ -32,17 +30,20 @@ func RemoteDial(Request []byte) ([]byte, error) {
 
 /*GetRemoteResponse : Fetches Remote Response from the Router
 in an encrypted []byte response*/
-func GetRemoteResponse(RConn net.Conn, RQ []byte) ([]byte, error) {
+func GetRemoteResponse(RConn net.Conn, Request []byte) ([]byte, error) {
 	var err error
-	RQ = append(RQ, '\n')
+	var Response []byte
 
-	if _, err := RConn.Write(RQ); err == nil {
-		fmt.Println("Written!")
+	Reader := bufio.NewReader(RConn)
+	Writer := bufio.NewWriter(RConn)
+	if n, err := Writer.Write(Request); err == nil {
+		Writer.Flush()
+		fmt.Println(n, "Bytes Written!")
 		for {
-			if RP, err := ioutil.ReadAll(RConn); err == nil {
-				fmt.Println(RConn.LocalAddr(), "Read!", string(RP))
-				if len(RP) > 0 {
-					return RP, nil
+			if nn, err := Reader.Read(Response); err == nil {
+				fmt.Println(nn, "Bytes Read!")
+				if len(Response) > 0 {
+					return Response, nil
 				}
 			}
 		}
@@ -58,15 +59,15 @@ to the Router.
 The encrypted Response received from the Router which is then
 decrypted by the Middleware and served to the browser.
 */
-func BrowserConnHandler(B BrowserConn) {
+func BrowserConnHandler(B BrowserConn, K k.Keys, RemoteAddr string) {
 	var RQ, RP []byte
 	var Request *http.Request
 	var err error
 
-	TCReader := bufio.NewReader(TConn)
-	RQJson, err = http.ReadRequest(TCReader)
+	TCReader := bufio.NewReader(*B.Conn)
+	Request, err = http.ReadRequest(TCReader)
 	e.ErrorHandler(err)
-	RQ, err = httputil.DumpRequest(Request, true)
+	RQ, err = u.GOBEncode(Request)
 	e.ErrorHandler(err)
 
 	for {
@@ -74,22 +75,18 @@ func BrowserConnHandler(B BrowserConn) {
 		case B.DChan <- RQ:
 			if len(RQ) > 0 {
 				RQ = make([]byte, 0)
-				B.EChan = Middleware(B.DChan)
-				if Req, ok := <-EChan; ok {
-					RP, err = RemoteDial(Req)
+				B.EChan = EncryptChannel(B.DChan, B.RQPacket, &K)
+				if ReqBytes, ok := <-B.EChan; ok {
+					RP, err = RemoteDial(ReqBytes, RemoteAddr)
 					e.ErrorHandler(err)
-					EChan <- RP
+					B.EChan <- RP
 				}
 			}
 		default:
-			B.DChan = Middleware(B.Chan)
-			if RP, ok := <-DChan; ok {
-				fmt.Println(TConn.RemoteAddr(), "<-", string(RP))
-				n, err := TConn.Write(RP)
-				fmt.Println("Bytes : ", n, ":", err)
-				TConn.Close()
-				close(DChan)
-				close(EChan)
+			B.DChan = DecryptChannel(B.EChan, B.RSPacket, &K)
+			if RespBytes, ok := <-B.DChan; ok {
+				//n, err := TConn.Write(RP)
+				B.CloseBrowserConn()
 				return
 			}
 		}

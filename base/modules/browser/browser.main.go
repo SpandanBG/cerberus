@@ -1,26 +1,26 @@
 package browser
 
 import (
-	e "../../error"
 	p "../connection"
-	b "../init"
+	e "../error"
+	i "../init"
+	k "../keys"
 	"crypto/rsa"
 	"net"
 )
 
 type BrowserConn struct {
-	Conn   *net.Conn
-	Packet *p.Packet
-	EChan  chan []byte
-	DChan  chan []byte
+	Conn               *net.Conn
+	RQPacket, RSPacket *p.Packet
+	EChan, DChan       chan []byte
 }
 
 /*NewBrowserConn : creates a new browser connection object*/
 func NewBrowserConn(Conn *net.Conn) *BrowserConn {
 	return &BrowserConn{
 		Conn:  Conn,
-		EChan: make(chan []byte, 2048),
-		DChan: make(chan []byte, 2048)
+		EChan: make(chan []byte),
+		DChan: make(chan []byte),
 	}
 }
 
@@ -28,7 +28,7 @@ func NewBrowserConn(Conn *net.Conn) *BrowserConn {
 for all incoming requests from the browser. HTTP_PROXY.env is set to
 the configured Host+Port in order to re-route all the HTTP browser requests
 to a that Address*/
-func LocalListen(config *b.CONFIG, keys *Keys) {
+func LocalListen(config *i.Config, keys *k.Keys) {
 	LocalAddr := config.Host + ":" + config.Port
 	RemoteAddr := config.RemoteAddr + ":" + config.Port
 	Listener, err := net.Listen("tcp", LocalAddr)
@@ -38,7 +38,7 @@ func LocalListen(config *b.CONFIG, keys *Keys) {
 		e.ErrorHandler(err)
 		BC := NewBrowserConn(Conn)
 		BC.InitPacketHeader(config.Version, keys.PublicKey)
-		go BrowserConnHandler(BC)
+		go BrowserConnHandler(BC, keys, RemoteAddr)
 	}
 }
 
@@ -47,4 +47,13 @@ func (b *BrowserConn) InitPacketHeader(Version int, PK *rsa.PublicKey) {
 	header := p.Header{Version: Version, REQ: true}
 	b.Packet.Header = header
 	b.Packet.Key = PK
+}
+
+/*CloseBrowserConn: closes all channels and connections in the
+BrowserConn object*/
+func (B *BrowserConn) CloseBrowserConn() {
+	B.Conn.Close()
+	close(B.EChan)
+	close(B.DChan)
+	B.RQPacket, B.RSPacket = nil, nil
 }

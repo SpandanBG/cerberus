@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"os"
 	"runtime"
-	"strconv"
 )
 
 //SYSTEM CONSTANTS
@@ -22,15 +21,16 @@ Any changes to be made to the configuration needs to be made in
 file named as "config.json"
 */
 type Config struct {
-	Version     int    `json:"version"`
-	Name        string `json:"name"`
-	Protocol    string `json:"protocol"`
-	Host        string `json:"host"`
-	Port        string `json:"port"`
-	Platform    string `json:"platform"`
-	Environment string `json:"environment"`
-	IP          string `json:"ip"`
-	BCast       string `json:"bcast"`
+	Version     int    `json:"version"`     //Version of Protocol
+	Name        string `json:"name"`        //Name of Protocol
+	Protocol    string `json:"protocol"`    //Underlying Protocol
+	Host        string `json:"host"`        //Localhost Loopback Address
+	Port        string `json:"port"`        //Local Port
+	Platform    string `json:"platform"`    //OS Platform
+	Environment string `json:"environment"` //Environment : Development, Test, Production, etc.
+	IP          string `json:"ip"`          //IP Address of the Local Machine over the Network
+	BCast       string `json:"bcast"`       //Broadcast Address of Network
+	RemoteAddr  string `json:"raddr"`       //Remote Address of Router
 }
 
 /*NewConfig : a Config struct is returned*/

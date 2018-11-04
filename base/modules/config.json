@@ -2,7 +2,7 @@
     "Version"       : 1,
     "Name"          : "Cerberus ProtoBR",
     "Protocol"      : "tcp",
-    "Host"          : "",
+    "Host"          : "127.0.0.1",
     "Port"          : "4123",
     "Platform"      : "",
     "Environment"   : "development",

@@ -65,7 +65,7 @@ func (conn Connection) LaunchUDPTracer(tracingAddr string) (*net.UDPAddr, error)
 }
 
 func TracerResponseValid(response []byte) bool {
-	head, _, err := ParserJSONPacket(response)
+	head, _, _, err := ParserPacketBytes(response)
 	if err != nil {
 		return false
 	}
@@ -78,5 +78,5 @@ func TracerResponseValid(response []byte) bool {
 func CreateTracerPacket() ([]byte, error) {
 	head := &Header{DREQ: true}
 	body := []byte("")
-	return GeneratePacket(head, body)
+	return GeneratePacket(head, nil, body)
 }

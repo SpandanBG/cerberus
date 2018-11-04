@@ -38,7 +38,7 @@ func (keys *Keys) ExportPublicKey() {
 /*Needs modification*/
 func (keys *Keys) GetRemotePublicKey(connect *conn.Connection) error {
 	head := &conn.Header{Version: 1, REQ: true, KX: true}
-	reqPacket, err := conn.GeneratePacket(head, []byte(""))
+	reqPacket, err := conn.GeneratePacket(head, keys.PublicKey, []byte(""))
 	if err != nil {
 		return err
 	}
