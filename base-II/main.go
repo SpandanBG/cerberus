@@ -11,19 +11,13 @@ import (
 	"./modules/keys"
 )
 
-// RSAKeys : The RSA key pair
-var RSAKeys *keys.Keys
-
 // Connection : The TCP and UDP connection
 var Connection *connection.Connection
 
 func init() {
 	loadRSAKeyPair()
-	fmt.Println("RSA Keys Pairs Generated")
 	setupConnectionConfig()
-	fmt.Println("Connection Configurations Setup Done")
 	startTracerServer()
-	fmt.Println("Tracer Server Open")
 }
 
 func main() {
@@ -31,40 +25,52 @@ func main() {
 	Connection.OpenTCPPort()
 	for {
 		if incoming, err := Connection.TCP.Accept(); err == nil {
-			go proxyHTTPRequest(&incoming)
+			go proxyHTTPRequest(incoming)
 		}
 	}
 }
 
 func loadRSAKeyPair() {
-	RSAKeys = keys.NewKeys()
-	if err := RSAKeys.CreateRSAPair(); err != nil {
+	fmt.Println("Creating RSA Keys Pairs")
+	configs.RSAKeys = keys.NewKeys()
+	if err := configs.RSAKeys.CreateRSAPair(); err != nil {
 		log.Fatal(err)
 	}
+	fmt.Println("RSA Keys Pairs Generated")
 }
 
 func setupConnectionConfig() {
+	fmt.Println("Setting Up Connection Configurations")
 	addr := ":" + configs.PORT
 	Connection = connection.NewConnection(addr)
+	fmt.Println("Connection Configurations Setup Done")
 }
 
 func startTracerServer() {
+	fmt.Println("Starting Tracer Server")
 	if err := Connection.OpenUDPPort(); err != nil {
 		log.Fatal(err)
 	}
 	connection.RunTracerServer(Connection.UDP)
+	fmt.Println("Tracer Server Open")
 }
 
-func proxyHTTPRequest(conn *net.Conn) {
-	reader := bufio.NewReader(*conn)
-	writer := bufio.NewWriter(*conn)
-	buff := make([]byte, 1024)
-	n, err := reader.Read(buff)
+func proxyHTTPRequest(conn net.Conn) {
+	rAddr := conn.RemoteAddr().String()
+	reader := bufio.NewReader(conn)
+	writer := bufio.NewWriter(conn)
+	defer writer.Flush()
+	defer conn.Close()
+	reqPacket := make([]byte, configs.HTTPHEADERSIZE + configs.CERBERUSHEADERSIZE)
+	n, err := reader.Read(reqPacket)
 	if err != nil {
-		fmt.Println("HTTP Proxy Error : " + err.Error())
+		fmt.Println("HTTP Proxy REQ Error : " + err.Error())
 		return
 	}
-	fmt.Println(buff[:n])
-	writer.Write([]byte("hello"))
-	writer.Flush()
+	resPacket, err := connection.ProxyHandler(reqPacket[:n], rAddr)
+	if err != nil {
+		fmt.Println("HTTP Proxy RES Error : " + err.Error())
+		return
+	}
+	writer.Write(resPacket)
 }

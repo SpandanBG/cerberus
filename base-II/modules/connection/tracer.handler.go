@@ -11,7 +11,6 @@ import (
 func RunTracerServer(conn *net.UDPConn) {
 	go func() {
 		for {
-			fmt.Println("Tracer Server Wating")
 			packet := make([]byte, 128)
 			n, addr, err := conn.ReadFromUDP(packet)
 			fmt.Println("Tracer Packet from : " + addr.String())
@@ -24,7 +23,7 @@ func RunTracerServer(conn *net.UDPConn) {
 
 // SendTracerResponse : Send a response to the tracer packet
 func SendTracerResponse(packet []byte, conn *net.UDPConn, addr *net.UDPAddr) {
-	reqHeader, _, err := ParserPacketBytes(packet)
+	reqHeader, _, _, err := ParserPacketBytes(packet)
 	if err != nil {
 		fmt.Println("Tracer Packet From " + addr.String() + " Error : " + err.Error())
 		return
@@ -33,7 +32,7 @@ func SendTracerResponse(packet []byte, conn *net.UDPConn, addr *net.UDPAddr) {
 		fmt.Println("Tracer Packet From " + addr.String() + " Error : " + err.Error())
 		return
 	}
-	resPacket, err := GeneratePacket(&Header{Version: configs.VERSION, DREQ: true, RES: true}, []byte{})
+	resPacket, err := GeneratePacket(&Header{Version: configs.VERSION, DREQ: true, RES: true}, nil, []byte{})
 	if err != nil {
 		fmt.Println("Tracer Packet From " + addr.String() + " Error : " + err.Error())
 		return

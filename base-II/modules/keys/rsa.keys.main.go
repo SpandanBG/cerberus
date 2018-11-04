@@ -20,7 +20,7 @@ func NewKeys() *Keys {
 
 func (keys *Keys) CreateRSAPair() error {
 	var err error
-	keys.PrivateKey, err = rsa.GenerateKey(rand.Reader, 2048)
+	keys.PrivateKey, err = rsa.GenerateKey(rand.Reader, 1024)
 	if err != nil {
 		return err
 	}
