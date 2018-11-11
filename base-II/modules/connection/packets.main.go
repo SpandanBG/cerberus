@@ -29,12 +29,12 @@ func GeneratePacket(header *Header, key *rsa.PublicKey, body []byte) ([]byte, er
 	}
 	head := CreateHeaderByte(header)
 	packet := Packet{Header: head, Key: keyCopy, Body: body}
-	return utils.GOBEncode(packet)
+	return utils.CBOREncode(packet)
 }
 
 func ParserPacketBytes(raw []byte) (*Header, *rsa.PublicKey, []byte, error) {
 	var packet Packet
-	err := utils.GOBDecode(raw, &packet)
+	err := utils.CBORDecode(raw, &packet)
 	if err != nil {
 		return nil, nil, []byte{}, err
 	}

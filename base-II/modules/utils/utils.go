@@ -2,10 +2,11 @@ package utils
 
 import (
 	"bytes"
-	"encoding/gob"
 	"net"
 	"runtime"
 	"strings"
+
+	"github.com/ugorji/go/codec"
 )
 
 // GetWiFiIPAddr : Retives the IP address of the connected WiFi network
@@ -34,10 +35,11 @@ func GetWiFiIPAddr() (addr string, err error) {
 	return
 }
 
-// GOBEncode : Encodes the input interface to bytes
-func GOBEncode(input interface{}) ([]byte, error) {
+// CBOREncode : Encodes the input interface to bytes
+func CBOREncode(input interface{}) ([]byte, error) {
+	var ch codec.CborHandle
 	var buffer bytes.Buffer
-	enc := gob.NewEncoder(&buffer)
+	enc := codec.NewEncoder(&buffer, &ch)
 	err := enc.Encode(input)
 	if err != nil {
 		return []byte{}, err
@@ -45,9 +47,10 @@ func GOBEncode(input interface{}) ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
-// GOBDecode : Decodes the input bytes to the interface type
-func GOBDecode(input []byte, output interface{}) error {
+// CBORDecode : Decodes the input bytes to the interface type
+func CBORDecode(input []byte, output interface{}) error {
+	var ch codec.CborHandle
 	buffer := bytes.NewBuffer(input)
-	dec := gob.NewDecoder(buffer)
-	return dec.Decode(output)
+	dec := codec.NewDecoder(buffer, &ch)
+	return dec.Decode(&output)
 }

@@ -35,7 +35,7 @@ func MakeHTTPRequest(body []byte) (resRaw []byte, err error) {
 	if err == nil {
 		resBody, err = http.DefaultClient.Do(reqHeader)
 		if err == nil {
-			resRaw, err = utils.GOBEncode(resBody)
+			resRaw, err = utils.CBOREncode(resBody)
 		}
 	}
 	return
@@ -48,7 +48,7 @@ func BodyToHTTPRequest(body []byte) (*http.Request, error) {
 		return nil, err
 	}
 	var httpHeader http.Request
-	err = utils.GOBDecode(httpHeaderRaw, httpHeader)
+	err = utils.CBORDecode(httpHeaderRaw, httpHeader)
 	return &httpHeader, err
 }
 

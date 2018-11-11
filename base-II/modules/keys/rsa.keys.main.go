@@ -1,13 +1,17 @@
 package keys
 
 import (
+	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
 	"encoding/json"
 )
 
-const Version = 1
+const (
+	MAXMSG    = 62
+	MAXCIPHER = 128
+)
 
 type Keys struct {
 	PublicKey  *rsa.PublicKey
@@ -33,6 +37,32 @@ func (keys *Keys) ExportPublicKey() ([]byte, error) {
 }
 
 func (keys *Keys) Encrypt(publicKey *rsa.PublicKey, message []byte) ([]byte, error) {
+	var buffer bytes.Buffer
+	msgBuffer := bytes.NewBuffer(message)
+	for msgBuffer.Len() > 0 {
+		cipherText, err := makeCipherText(publicKey, msgBuffer.Next(MAXMSG))
+		if err != nil {
+			return []byte{}, err
+		}
+		buffer.Write(cipherText)
+	}
+	return buffer.Bytes(), nil
+}
+
+func (keys *Keys) Decrypt(cipherText []byte) ([]byte, error) {
+	var buffer bytes.Buffer
+	cipherBuffer := bytes.NewBuffer(cipherText)
+	for cipherBuffer.Len() > 0 {
+		plainText, err := solveCipherText(keys.PrivateKey, cipherBuffer.Next(MAXCIPHER))
+		if err != nil {
+			return []byte{}, err
+		}
+		buffer.Write(plainText)
+	}
+	return buffer.Bytes(), nil
+}
+
+func makeCipherText(publicKey *rsa.PublicKey, message []byte) ([]byte, error) {
 	return rsa.EncryptOAEP(
 		sha256.New(),
 		rand.Reader,
@@ -42,11 +72,11 @@ func (keys *Keys) Encrypt(publicKey *rsa.PublicKey, message []byte) ([]byte, err
 	)
 }
 
-func (keys *Keys) Decrypt(cipherText []byte) ([]byte, error) {
+func solveCipherText(privateKey *rsa.PrivateKey, cipherText []byte) ([]byte, error) {
 	return rsa.DecryptOAEP(
 		sha256.New(),
 		rand.Reader,
-		keys.PrivateKey,
+		privateKey,
 		cipherText,
 		[]byte(""),
 	)
