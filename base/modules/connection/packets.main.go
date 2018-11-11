@@ -2,6 +2,7 @@ package connection
 
 import (
 	"crypto/rsa"
+	"encoding/json"
 
 	"../utils"
 )
@@ -16,16 +17,16 @@ type Header struct {
 
 type Packet struct {
 	Header byte
-	Key    rsa.PublicKey
+	Key    []byte
 	Body   []byte
 }
 
 func GeneratePacket(header *Header, key *rsa.PublicKey, body []byte) ([]byte, error) {
-	var keyCopy rsa.PublicKey
+	var keyCopy []byte
 	if key == nil {
-		keyCopy = rsa.PublicKey{}
+		keyCopy = []byte{}
 	} else {
-		keyCopy = *key
+		keyCopy, _ = json.Marshal(*key)
 	}
 	head := CreateHeaderByte(header)
 	packet := Packet{Header: head, Key: keyCopy, Body: body}
@@ -34,12 +35,16 @@ func GeneratePacket(header *Header, key *rsa.PublicKey, body []byte) ([]byte, er
 
 func ParserPacketBytes(raw []byte) (*Header, *rsa.PublicKey, []byte, error) {
 	var packet Packet
+	var keyCopy rsa.PublicKey
 	err := utils.GOBDecode(raw, &packet)
 	if err != nil {
 		return nil, nil, []byte{}, err
 	}
 	head := TranslateHeaderByte(packet.Header)
-	return head, &packet.Key, packet.Body, nil
+	if len(packet.Key) > 0 {
+		json.Unmarshal(packet.Key, &keyCopy)
+	}
+	return head, &keyCopy, packet.Body, nil
 }
 
 func CreateHeaderByte(head *Header) byte {

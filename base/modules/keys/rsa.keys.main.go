@@ -3,12 +3,18 @@ package keys
 import (
 	conn "../connection"
 	"bufio"
+	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
 	"fmt"
 	"net"
 	"strconv"
+)
+
+const (
+	MAXMSG    = 62
+	MAXCIPHER = 128
 )
 
 type Keys struct {
@@ -57,6 +63,7 @@ func (keys *Keys) GetRemotePublicKey(connect *conn.Connection) error {
 		if n, err := TConn.Read(resPacket); err == nil {
 			fmt.Println(remoteAddr, "BYtes Written : ", n)
 			_, keys.RemotePublicKey, _, err = conn.ParserPacketBytes(resPacket[:n])
+			fmt.Println(keys.RemotePublicKey)
 			if err != nil {
 				return err
 			}
@@ -66,20 +73,47 @@ func (keys *Keys) GetRemotePublicKey(connect *conn.Connection) error {
 }
 
 func (keys *Keys) Encrypt(message []byte) ([]byte, error) {
+	var buffer bytes.Buffer
+	msgBuffer := bytes.NewBuffer(message)
+	for msgBuffer.Len() > 0 {
+		cipherText, err := makeCipherText(keys.RemotePublicKey, msgBuffer.Next(MAXMSG))
+		if err != nil {
+			return []byte{}, err
+		}
+		buffer.Write(cipherText)
+	}
+	return buffer.Bytes(), nil
+}
+
+func (keys *Keys) Decrypt(cipherText []byte) ([]byte, error) {
+	var buffer bytes.Buffer
+	cipherBuffer := bytes.NewBuffer(cipherText)
+	for cipherBuffer.Len() > 0 {
+		plainText, err := solveCipherText(keys.PrivateKey, cipherBuffer.Next(MAXCIPHER))
+		if err != nil {
+			return []byte{}, err
+		}
+		buffer.Write(plainText)
+	}
+	return buffer.Bytes(), nil
+}
+
+func makeCipherText(publicKey *rsa.PublicKey, message []byte) ([]byte, error) {
+	//fmt.Println(len(message))
 	return rsa.EncryptOAEP(
 		sha256.New(),
 		rand.Reader,
-		keys.RemotePublicKey,
+		publicKey,
 		message,
 		[]byte(""),
 	)
 }
 
-func (keys *Keys) Decrypt(cipherText []byte) ([]byte, error) {
+func solveCipherText(privateKey *rsa.PrivateKey, cipherText []byte) ([]byte, error) {
 	return rsa.DecryptOAEP(
 		sha256.New(),
 		rand.Reader,
-		keys.PrivateKey,
+		privateKey,
 		cipherText,
 		[]byte(""),
 	)

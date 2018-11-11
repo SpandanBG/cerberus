@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/http/httputil"
 )
 
 /*RemoteDial : Dialing a remote connection to the
@@ -26,6 +27,7 @@ func RemoteDial(Request []byte, RAddr string) ([]byte, error) {
 		}
 		return nil, err
 	}
+	//fmt.Println(RAddr)
 	return nil, err
 }
 
@@ -40,12 +42,10 @@ func GetRemoteResponse(RConn net.Conn, Request []byte) ([]byte, error) {
 	if n, err := Writer.Write(Request); err == nil {
 		Writer.Flush()
 		fmt.Println(n, "Bytes Written!")
-		for {
-			if nn, err := Reader.Read(Response); err == nil {
-				fmt.Println(nn, "Bytes Read!")
-				if len(Response) > 0 {
-					return Response, nil
-				}
+		if nn, err := Reader.Read(Response); err == nil {
+			fmt.Println(nn, "Bytes Read!")
+			if len(Response) > 0 {
+				return Response, nil
 			}
 		}
 	}
@@ -63,30 +63,24 @@ decrypted by the Middleware and served to the browser.
 func BrowserConnHandler(B BrowserConn, K *k.Keys, C i.Config) {
 	var RQ, RP []byte
 	var Request *http.Request
+	var temp *http.Request
 	var err error
-	RemoteAddr := C.RemoteAddr + ":" + C.Port
+	RemoteAddr := C.RemoteAddr
 
 	TCReader := bufio.NewReader(B.Conn)
 	Request, err = http.ReadRequest(TCReader)
+
+	RQBytes, err := httputil.DumpRequest(Request, true)
 	e.ErrorHandler(err)
-	RQ, err = u.GOBEncode(*Request)
+	RQ, err = u.GOBEncode(RQBytes)
 	e.ErrorHandler(err)
+	err = u.GOBDecode(RQ, &temp)
 	RQHeader := InitPacketHeader(&B, C.Version, K.PublicKey)
-	//B.DChan <- RQ
-	fmt.Println(RQ)
-	B.EChan = EncryptChannel(RQHeader, RQ, B.RQPacket, K)
-	if ReqBytes, ok := <-B.EChan; ok {
-		fmt.Println(ReqBytes)
-		RP, err = RemoteDial(ReqBytes, RemoteAddr)
-		fmt.Println(RP)
-		e.ErrorHandler(err)
-		B.EChan <- RP
-	}
-	fmt.Println(RQ)
-	B.DChan = DecryptChannel(B.EChan, B.RSPacket, K)
-	if _, ok := <-B.DChan; ok {
-		//n, err := TConn.Write(RP)
-		B.CloseBrowserConn()
-		return
-	}
+	ReqBytes := EncryptChannel(RQHeader, RQ, B.RQPacket, K)
+	RP, err = RemoteDial(ReqBytes, RemoteAddr)
+	e.ErrorHandler(err)
+	Response := DecryptChannel(RP, B.RSPacket, K)
+	fmt.Println(string(Response))
+	B.CloseBrowserConn()
+	return
 }
