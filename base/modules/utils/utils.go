@@ -2,7 +2,7 @@ package utils
 
 import (
 	"bytes"
-	"encoding/gob"
+	codec "github.com/ugorji/go/codec"
 	"net"
 	"runtime"
 	"strings"
@@ -36,9 +36,17 @@ func GetWiFiIPAddr() (addr string, err error) {
 
 // GOBEncode : Encodes the input interface to bytes
 func GOBEncode(input interface{}) ([]byte, error) {
-	var buffer bytes.Buffer
+	/*var buffer bytes.Buffer
 	enc := gob.NewEncoder(&buffer)
 	err := enc.Encode(input)
+	if err != nil {
+		return []byte{}, err
+	}
+	return buffer.Bytes(), nil*/
+	var ch codec.CborHandle
+	var buffer bytes.Buffer
+	encoder := codec.NewEncoder(&buffer, &ch)
+	err := encoder.Encode(input)
 	if err != nil {
 		return []byte{}, err
 	}
@@ -47,8 +55,13 @@ func GOBEncode(input interface{}) ([]byte, error) {
 
 // GOBDecode : Decodes the input bytes to the interface type
 func GOBDecode(input []byte, output interface{}) error {
-	var buffer bytes.Buffer
+	/*var buffer bytes.Buffer
 	buffer.Write(input)
 	dec := gob.NewDecoder(&buffer)
-	return dec.Decode(output)
+	return dec.Decode(output)*/
+	var ch codec.CborHandle
+	buffer := bytes.NewBuffer(input)
+	decoder := codec.NewDecoder(buffer, &ch)
+	err := decoder.Decode(&output)
+	return err
 }

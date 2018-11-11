@@ -5,6 +5,7 @@ import (
 	e "../error"
 	k "../keys"
 	"crypto/rsa"
+	"fmt"
 )
 
 /*InitPacketHeader : intialize packet header*/
@@ -14,18 +15,21 @@ func InitPacketHeader(b *BrowserConn, Version int, PK *rsa.PublicKey) *c.Header 
 }
 
 /*EncryptChannel : encrypt channel using the RSA Public Key passed */
-func EncryptChannel(Header *c.Header, DC chan []byte, P *c.Packet, K *k.Keys) chan []byte {
+func EncryptChannel(Header *c.Header, RQ []byte, P *c.Packet, K *k.Keys) chan []byte {
 	EC := make(chan []byte)
-	if RQ, ok := <-DC; ok {
-		var err error
-		EncryptedRQ, err := K.Encrypt(RQ)
-		e.ErrorHandler(err)
-		RQPacket, err := c.GeneratePacket(Header, K.PublicKey, EncryptedRQ)
-		e.ErrorHandler(err)
-		EC <- RQPacket
-		return EC
-	}
-	return nil
+	//if RQ, ok := <-DC; ok {
+	var err error
+	fmt.Println(RQ)
+	EncryptedRQ, err := K.Encrypt(RQ)
+	fmt.Println(EncryptedRQ)
+	e.ErrorHandler(err)
+	RQPacket, err := c.GeneratePacket(Header, K.PublicKey, EncryptedRQ)
+	e.ErrorHandler(err)
+	fmt.Println(RQPacket)
+	EC <- RQPacket
+	return EC
+	//}
+	//return nil
 }
 
 /*DecryptChannel : decrypt channel using RSA Private Key Passed*/

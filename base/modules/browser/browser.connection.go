@@ -69,28 +69,24 @@ func BrowserConnHandler(B BrowserConn, K *k.Keys, C i.Config) {
 	TCReader := bufio.NewReader(B.Conn)
 	Request, err = http.ReadRequest(TCReader)
 	e.ErrorHandler(err)
-	RQ, err = u.GOBEncode(Request)
+	RQ, err = u.GOBEncode(*Request)
 	e.ErrorHandler(err)
 	RQHeader := InitPacketHeader(&B, C.Version, K.PublicKey)
-	for {
-		select {
-		case B.DChan <- RQ:
-			if len(RQ) > 0 {
-				RQ = make([]byte, 0)
-				B.EChan = EncryptChannel(RQHeader, B.DChan, B.RQPacket, K)
-				if ReqBytes, ok := <-B.EChan; ok {
-					RP, err = RemoteDial(ReqBytes, RemoteAddr)
-					e.ErrorHandler(err)
-					B.EChan <- RP
-				}
-			}
-		default:
-			B.DChan = DecryptChannel(B.EChan, B.RSPacket, K)
-			if _, ok := <-B.DChan; ok {
-				//n, err := TConn.Write(RP)
-				B.CloseBrowserConn()
-				return
-			}
-		}
+	//B.DChan <- RQ
+	fmt.Println(RQ)
+	B.EChan = EncryptChannel(RQHeader, RQ, B.RQPacket, K)
+	if ReqBytes, ok := <-B.EChan; ok {
+		fmt.Println(ReqBytes)
+		RP, err = RemoteDial(ReqBytes, RemoteAddr)
+		fmt.Println(RP)
+		e.ErrorHandler(err)
+		B.EChan <- RP
+	}
+	fmt.Println(RQ)
+	B.DChan = DecryptChannel(B.EChan, B.RSPacket, K)
+	if _, ok := <-B.DChan; ok {
+		//n, err := TConn.Write(RP)
+		B.CloseBrowserConn()
+		return
 	}
 }
