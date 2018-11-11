@@ -52,5 +52,5 @@ func CBORDecode(input []byte, output interface{}) error {
 	var ch codec.CborHandle
 	buffer := bytes.NewBuffer(input)
 	dec := codec.NewDecoder(buffer, &ch)
-	return dec.Decode(&output)
+	return dec.Decode(output)
 }

@@ -13,7 +13,7 @@ func RunTracerServer(conn *net.UDPConn) {
 		for {
 			packet := make([]byte, 128)
 			n, addr, err := conn.ReadFromUDP(packet)
-			fmt.Println("Tracer Packet from : " + addr.String())
+			fmt.Println("Tracer Packet From :", addr.String())
 			if err == nil {
 				go SendTracerResponse(packet[:n], conn, addr)
 			}
@@ -25,16 +25,16 @@ func RunTracerServer(conn *net.UDPConn) {
 func SendTracerResponse(packet []byte, conn *net.UDPConn, addr *net.UDPAddr) {
 	reqHeader, _, _, err := ParserPacketBytes(packet)
 	if err != nil {
-		fmt.Println("Tracer Packet From " + addr.String() + " Error_1 : " + err.Error())
+		fmt.Println("Tracer Packet From", addr.String(), "Error_1 :", err.Error())
 		return
 	}
 	if VerifyTracerPacket(reqHeader) == false {
-		fmt.Println("Tracer Packet From " + addr.String() + " Error_2 : Invalid Tracer Packet")
+		fmt.Println("Tracer Packet From", addr.String(), "Error_2 : Invalid Tracer Packet")
 		return
 	}
 	resPacket, err := GeneratePacket(&Header{Version: configs.VERSION, DREQ: true, RES: true}, nil, []byte{})
 	if err != nil {
-		fmt.Println("Tracer Packet From " + addr.String() + " Error_3 : " + err.Error())
+		fmt.Println("Tracer Packet From", addr.String(), "Error_3 :", err.Error())
 		return
 	}
 	conn.WriteToUDP(resPacket, addr)

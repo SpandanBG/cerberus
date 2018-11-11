@@ -65,12 +65,12 @@ func proxyHTTPRequest(conn net.Conn) {
 	reqPacket := make([]byte, configs.HTTPHEADERSIZE+configs.CERBERUSHEADERSIZE)
 	n, err := reader.Read(reqPacket)
 	if err != nil {
-		fmt.Println("HTTP Proxy REQ Error : " + err.Error())
+		fmt.Println("HTTP Proxy REQ Error :", err.Error())
 		return
 	}
 	resPacket, err := connection.ProxyHandler(reqPacket[:n], rAddr)
 	if err != nil {
-		fmt.Println("HTTP Proxy RES Error : " + err.Error())
+		fmt.Println("HTTP Proxy RES Error :", err.Error())
 		return
 	}
 	writer.Write(resPacket)
