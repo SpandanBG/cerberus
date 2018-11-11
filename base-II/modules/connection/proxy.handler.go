@@ -20,7 +20,7 @@ func ProxyHandler(reqRaw []byte, rAddr string) (resRaw []byte, err error) {
 				resRaw, err = GenerateHTTPPacket(httpResponse, pubkey)
 			}
 		} else if IsKeyExchangePacket(header) {
-			fmt.Println("Public Key Request From : " + rAddr)
+			fmt.Println("Public Key Request From :", rAddr)
 			resRaw, err = GeneratePublicKeyPacket()
 		}
 	}
@@ -30,12 +30,16 @@ func ProxyHandler(reqRaw []byte, rAddr string) (resRaw []byte, err error) {
 // MakeHTTPRequest : Makes the http request and returns the response
 func MakeHTTPRequest(body []byte) (resRaw []byte, err error) {
 	var reqHeader *http.Request
-	var resBody *http.Response
+	var response *http.Response
+	var presponse *PseudoResponse
 	reqHeader, err = BodyToHTTPRequest(body)
 	if err == nil {
-		resBody, err = http.DefaultClient.Do(reqHeader)
+		response, err = http.DefaultClient.Do(reqHeader)
 		if err == nil {
-			resRaw, err = utils.CBOREncode(resBody)
+			presponse, err = ResponseToPseudoResponse(response)
+			if err == nil {
+				resRaw, err = utils.CBOREncode(presponse)
+			}
 		}
 	}
 	return
@@ -43,13 +47,13 @@ func MakeHTTPRequest(body []byte) (resRaw []byte, err error) {
 
 // BodyToHTTPRequest : Converts packet body to http.Request
 func BodyToHTTPRequest(body []byte) (*http.Request, error) {
-	httpHeaderRaw, err := configs.RSAKeys.Decrypt(body)
+	requestRaw, err := configs.RSAKeys.Decrypt(body)
 	if err != nil {
 		return nil, err
 	}
-	var httpHeader http.Request
-	err = utils.CBORDecode(httpHeaderRaw, httpHeader)
-	return &httpHeader, err
+	var prequest PseudoRequest
+	err = utils.CBORDecode(requestRaw, &prequest)
+	return PseudoRequestToRequest(&prequest)
 }
 
 // GeneratePublicKeyPacket : Creates the public key packet
