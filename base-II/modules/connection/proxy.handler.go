@@ -16,33 +16,33 @@ func ProxyHandler(reqRaw []byte, rAddr string) (resRaw []byte, err error) {
 		if IsHTTPRequestPacket(header) {
 			fmt.Println("Proxy Request From :", rAddr)
 			httpResponse, err := MakeHTTPRequest(body)
-			if err == nil {
-				resRaw, err = GenerateHTTPPacket(httpResponse, pubkey)
+			if err != nil {
+				return []byte{}, err
 			}
+			return GenerateHTTPPacket(httpResponse, pubkey)
 		} else if IsKeyExchangePacket(header) {
 			fmt.Println("Public Key Request From :", rAddr)
-			resRaw, err = GeneratePublicKeyPacket()
+			return GeneratePublicKeyPacket()
 		}
 	}
-	return
+	return []byte{}, err
 }
 
 // MakeHTTPRequest : Makes the http request and returns the response
 func MakeHTTPRequest(body []byte) (resRaw []byte, err error) {
-	var reqHeader *http.Request
-	var response *http.Response
-	var presponse *PseudoResponse
-	reqHeader, err = BodyToHTTPRequest(body)
-	if err == nil {
-		response, err = http.DefaultClient.Do(reqHeader)
-		if err == nil {
-			presponse, err = ResponseToPseudoResponse(response)
-			if err == nil {
-				resRaw, err = utils.CBOREncode(presponse)
-			}
-		}
+	request, err := BodyToHTTPRequest(body)
+	if err != nil {
+		return []byte{}, err
 	}
-	return
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		return []byte{}, err
+	}
+	presponse, err := ResponseToPseudoResponse(response)
+	if err != nil {
+		return []byte{}, err
+	}
+	return utils.CBOREncode(presponse)
 }
 
 // BodyToHTTPRequest : Converts packet body to http.Request

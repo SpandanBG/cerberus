@@ -2,7 +2,9 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
+	"io"
 	"log"
 	"net"
 
@@ -28,7 +30,7 @@ func main() {
 	fmt.Println(configs.ART, "\n\n")
 	for {
 		if incoming, err := Connection.TCP.Accept(); err == nil {
-			go proxyHTTPRequest(incoming)
+			go proxyHTTPConnection(incoming)
 		}
 	}
 }
@@ -58,21 +60,49 @@ func startTracerServer() {
 	fmt.Println("Tracer Server Open")
 }
 
-func proxyHTTPRequest(conn net.Conn) {
+func proxyHTTPConnection(conn net.Conn) {
 	rAddr := conn.RemoteAddr().String()
-	reader := bufio.NewReader(conn)
-	writer := bufio.NewWriter(conn)
-	reqPacket := make([]byte, configs.HTTPHEADERSIZE+configs.CERBERUSHEADERSIZE)
-	n, err := reader.Read(reqPacket)
+	reqPacket, err := proxyRequestReader(&conn)
 	if err != nil {
 		fmt.Println("HTTP Proxy REQ Error :", err.Error())
 		return
 	}
-	resPacket, err := connection.ProxyHandler(reqPacket[:n], rAddr)
+	resPacket, err := connection.ProxyHandler(reqPacket, rAddr)
 	if err != nil {
 		fmt.Println("HTTP Proxy RES Error :", err.Error())
 		return
 	}
-	writer.Write(resPacket)
+	n, err := proxyResponseWriter(&conn, resPacket)
+	if err != nil {
+		fmt.Println("Socket Write Error", err, "Written", n)
+	}
+	fmt.Println("Responded", rAddr, "with", n, "bytes")
+}
+
+func proxyRequestReader(conn *net.Conn) ([]byte, error) {
+	reader := bufio.NewReader(*conn)
+	var readerBuffer bytes.Buffer
+	for {
+		reqPacket := make([]byte, 20)
+		n, err := reader.Read(reqPacket)
+		if err != nil {
+			if err == io.EOF {
+				break
+			} else if err != nil {
+				return []byte{}, err
+			}
+		}
+		readerBuffer.Write(reqPacket[:n])
+	}
+	return readerBuffer.Bytes(), nil
+}
+
+func proxyResponseWriter(conn *net.Conn, data []byte) (n int, err error) {
+	writer := bufio.NewWriter(*conn)
+	n, err = writer.Write(data)
+	if err != nil {
+		return n, err
+	}
 	writer.Flush()
+	return n, nil
 }
