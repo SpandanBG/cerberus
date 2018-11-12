@@ -6,14 +6,15 @@ import (
 	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/sha256"
+	"crypto/sha1"
 	"fmt"
+	"io"
 	"net"
 	"strconv"
 )
 
 const (
-	MAXMSG    = 62
+	MAXMSG    = 86
 	MAXCIPHER = 128
 )
 
@@ -53,20 +54,12 @@ func (keys *Keys) GetRemotePublicKey(connect *conn.Connection) error {
 	if err != nil {
 		return err
 	}
-
-	writer := bufio.NewWriter(TConn)
-	resPacket := make([]byte, 5620)
-	if n, err := writer.Write(reqPacket); err == nil {
-		writer.Flush()
-		fmt.Println(remoteAddr, "BYtes Written : ", n)
-		// udpConn.SetReadDeadline(time.Now().Add(time.Second * 5))
-		if n, err := TConn.Read(resPacket); err == nil {
-			fmt.Println(remoteAddr, "BYtes Written : ", n)
-			_, keys.RemotePublicKey, _, err = conn.ParserPacketBytes(resPacket[:n])
-			fmt.Println(keys.RemotePublicKey)
-			if err != nil {
-				return err
-			}
+	_, err = ProxyWriter(&TConn, reqPacket)
+	if err == nil {
+		resPacket, err := ProxyReader(&TConn)
+		_, keys.RemotePublicKey, _, err = conn.ParserPacketBytes(resPacket)
+		if err != nil {
+			return err
 		}
 	}
 	return nil
@@ -99,9 +92,8 @@ func (keys *Keys) Decrypt(cipherText []byte) ([]byte, error) {
 }
 
 func makeCipherText(publicKey *rsa.PublicKey, message []byte) ([]byte, error) {
-	//fmt.Println(len(message))
 	return rsa.EncryptOAEP(
-		sha256.New(),
+		sha1.New(),
 		rand.Reader,
 		publicKey,
 		message,
@@ -111,10 +103,38 @@ func makeCipherText(publicKey *rsa.PublicKey, message []byte) ([]byte, error) {
 
 func solveCipherText(privateKey *rsa.PrivateKey, cipherText []byte) ([]byte, error) {
 	return rsa.DecryptOAEP(
-		sha256.New(),
+		sha1.New(),
 		rand.Reader,
 		privateKey,
 		cipherText,
 		[]byte(""),
 	)
+}
+
+func ProxyWriter(conn *net.Conn, data []byte) (int, error) {
+	writer := bufio.NewWriter(*conn)
+	n, err := writer.Write(data)
+	if err != nil {
+		return 0, err
+	}
+	writer.Flush()
+	fmt.Println("Bytes Written : ", n)
+	return n, nil
+}
+
+func ProxyReader(conn *net.Conn) ([]byte, error) {
+	Reader := bufio.NewReader(*conn)
+	var resBuffer bytes.Buffer
+	response := make([]byte, 20)
+	for {
+		n, err := Reader.Read(response)
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return []byte{}, err
+		}
+		resBuffer.Write(response[:n])
+	}
+	return resBuffer.Bytes(), nil
 }

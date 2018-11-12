@@ -43,22 +43,22 @@ func (conn Connection) LaunchUDPTracer(ownAddr string, tracingAddr string) (*net
 		log.Fatal(err)
 	}
 	for i := 0; i < 10; i++ {
-		timeout := time.Now().Add(time.Second * 5)
-		for time.Now().Before(timeout) {
-			fmt.Println("Tracing... Attempt", i)
-			var P Packet
-			u.GOBDecode(requestPacket, P)
-			fmt.Println(P)
-			conn.UDP.WriteToUDP(requestPacket, BCast)
-			fmt.Println("Written!", BCast)
-			for {
-				n, addr, _ := conn.UDP.ReadFromUDP(responsePacket)
-				if addr.IP.String() != ownAddr {
-					if TracerResponseValid(responsePacket[:n]) == true {
-						return addr, nil
-					}
-					break
+		fmt.Println("Attemptng to trace the router -> ", i)
+		var P Packet
+		u.GOBDecode(requestPacket, P)
+		conn.UDP.WriteToUDP(requestPacket, BCast)
+		fmt.Println("Broadcasting to ", BCast)
+		for {
+			conn.UDP.SetReadDeadline(time.Now().Add(30 * time.Second))
+			n, addr, err := conn.UDP.ReadFromUDP(responsePacket)
+			if err != nil {
+				break
+			}
+			if addr.IP.String() != ownAddr {
+				if TracerResponseValid(responsePacket[:n]) == true {
+					return addr, nil
 				}
+				break
 			}
 		}
 	}
@@ -67,7 +67,6 @@ func (conn Connection) LaunchUDPTracer(ownAddr string, tracingAddr string) (*net
 
 func TracerResponseValid(response []byte) bool {
 	head, _, _, err := ParserPacketBytes(response)
-	fmt.Println("this ", head)
 	if err != nil {
 		return false
 	}

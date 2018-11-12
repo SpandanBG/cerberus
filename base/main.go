@@ -6,6 +6,7 @@ import (
 	e "./modules/error"
 	i "./modules/init"
 	k "./modules/keys"
+	"fmt"
 )
 
 //SYSTEM GLOBAL VARIABLES
@@ -39,6 +40,7 @@ func DoKeys() {
 	e.ErrorHandler(err)
 
 	Keys.GetRemotePublicKey(Conn)
+	fmt.Println("Fetched Remote Public Key : ", Keys.RemotePublicKey, "\n")
 }
 
 /*SearchProxyRouter : Establish connection to Proxy Router*/
@@ -47,9 +49,9 @@ func SearchProxyRouter() {
 	err = Conn.OpenUDPPort()
 	e.ErrorHandler(err)
 
-	//fmt.Println(Config.BCast)
 	Conn.RemoteAddr, err = Conn.LaunchUDPTracer(Config.IP, Config.BCast+":"+Config.Port)
 	Config.RemoteAddr = Conn.RemoteAddr.String()
+	fmt.Println("Router Address Found : ", Config.RemoteAddr)
 	e.ErrorHandler(err)
 }
 

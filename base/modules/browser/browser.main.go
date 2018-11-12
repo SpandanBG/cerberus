@@ -1,27 +1,13 @@
 package browser
 
 import (
-	p "../connection"
 	e "../error"
 	i "../init"
 	k "../keys"
+	"io"
 	"net"
+	"net/http"
 )
-
-type BrowserConn struct {
-	Conn               net.Conn
-	RQPacket, RSPacket *p.Packet
-	EChan, DChan       chan []byte
-}
-
-/*NewBrowserConn : creates a new browser connection object*/
-func NewBrowserConn(Conn *net.Conn) *BrowserConn {
-	return &BrowserConn{
-		Conn:  *Conn,
-		EChan: make(chan []byte),
-		DChan: make(chan []byte),
-	}
-}
 
 /*LocalListen : Listens on the configured Local IP and Port
 for all incoming requests from the browser. HTTP_PROXY.env is set to
@@ -31,18 +17,17 @@ func LocalListen(config *i.Config, keys *k.Keys) {
 	LocalAddr := config.Host + ":" + config.Port
 	Listener, err := net.Listen("tcp", LocalAddr)
 	e.ErrorHandler(err)
-	for {
-		Conn, err := Listener.Accept()
-		e.ErrorHandler(err)
-		BC := NewBrowserConn(&Conn)
-		go BrowserConnHandler(*BC, keys, *config)
-	}
-}
-
-/*CloseBrowserConn: closes all channels and connections in the
-BrowserConn object*/
-func (B *BrowserConn) CloseBrowserConn() {
-	B.Conn.Close()
-	close(B.EChan)
-	close(B.DChan)
+	http.Serve(Listener, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodConnect {
+			response := BrowserConnHandler(keys, *config, r)
+			defer response.Body.Close()
+			for k, vv := range response.Header {
+				for _, v := range vv {
+					w.Header().Add(k, v)
+				}
+			}
+			w.WriteHeader(response.StatusCode)
+			io.Copy(w, response.Body)
+		}
+	}))
 }

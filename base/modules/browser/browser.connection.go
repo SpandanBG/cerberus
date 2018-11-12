@@ -63,28 +63,29 @@ to the Router.
 The encrypted Response received from the Router which is then
 decrypted by the Middleware and served to the browser.
 */
-func BrowserConnHandler(B BrowserConn, K *k.Keys, C i.Config) {
-	var RQ, RP []byte
-	var Request *http.Request
-	var output c.PseudoResponse
+func BrowserConnHandler(K *k.Keys, C i.Config, Request *http.Request) *http.Response {
+	var GBRequest, GBResponse []byte
+	var Response c.PseudoResponse
 	var err error
 	RemoteAddr := C.RemoteAddr
 
-	TCReader := bufio.NewReader(B.Conn)
-	Request, _ = http.ReadRequest(TCReader)
 	PRequest, err := c.RequestToPseudoRequest(Request)
 	e.ErrorHandler(err)
 
-	RQ, err = u.GOBEncode(PRequest)
+	GBRequest, err = u.GOBEncode(PRequest)
 	e.ErrorHandler(err)
-	RQHeader := InitPacketHeader(&B, C.Version, K.PublicKey)
-	ReqBytes := EncryptChannel(RQHeader, RQ, B.RQPacket, K)
-	RP, err = RemoteDial(ReqBytes, RemoteAddr)
+	RQHeader := InitPacketHeader(C.Version, K.PublicKey)
+	ERQBytes := EncryptChannel(RQHeader, GBRequest, K)
+
+	ERPBytes, err := RemoteDial(ERQBytes, RemoteAddr)
 	e.ErrorHandler(err)
-	RP = DecryptChannel(RP, K)
-	err = u.GOBDecode(RP, &output)
-	_, err = c.PseudoResponseToResponse(&output)
-	fmt.Println("Recved:", len(output.Body))
+
+	fmt.Println("Received Encrypted Response of", len(ERPBytes), "bytes")
+	GBResponse = DecryptChannel(ERPBytes, K)
+	err = u.GOBDecode(GBResponse, &Response)
+	HTTPResponse, err := c.PseudoResponseToResponse(&Response)
+	fmt.Println("Decrypted Response Body of ", len(Response.Body), "bytes\n")
 	e.ErrorHandler(err)
-	B.CloseBrowserConn()
+
+	return HTTPResponse
 }

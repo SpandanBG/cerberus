@@ -8,13 +8,13 @@ import (
 )
 
 /*InitPacketHeader : intialize packet header*/
-func InitPacketHeader(b *BrowserConn, Version int, PK *rsa.PublicKey) *c.Header {
+func InitPacketHeader(Version int, PK *rsa.PublicKey) *c.Header {
 	header := c.Header{Version: Version, REQ: true}
 	return &header
 }
 
 /*EncryptChannel : encrypt channel using the RSA Public Key passed */
-func EncryptChannel(Header *c.Header, RQ []byte, P *c.Packet, K *k.Keys) []byte {
+func EncryptChannel(Header *c.Header, RQ []byte, K *k.Keys) []byte {
 	var err error
 	EncryptedRQ, err := K.Encrypt(RQ)
 	e.ErrorHandler(err)
