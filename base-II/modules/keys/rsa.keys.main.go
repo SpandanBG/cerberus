@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/sha256"
+	"crypto/sha1"
 	"encoding/json"
 )
 
 const (
-	MAXMSG    = 62
+	MAXMSG    = 86
 	MAXCIPHER = 128
 )
 
@@ -64,7 +64,7 @@ func (keys *Keys) Decrypt(cipherText []byte) ([]byte, error) {
 
 func makeCipherText(publicKey *rsa.PublicKey, message []byte) ([]byte, error) {
 	return rsa.EncryptOAEP(
-		sha256.New(),
+		sha1.New(),
 		rand.Reader,
 		publicKey,
 		message,
@@ -74,7 +74,7 @@ func makeCipherText(publicKey *rsa.PublicKey, message []byte) ([]byte, error) {
 
 func solveCipherText(privateKey *rsa.PrivateKey, cipherText []byte) ([]byte, error) {
 	return rsa.DecryptOAEP(
-		sha256.New(),
+		sha1.New(),
 		rand.Reader,
 		privateKey,
 		cipherText,

@@ -2,9 +2,7 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
-	"io"
 	"log"
 	"net"
 
@@ -61,6 +59,7 @@ func startTracerServer() {
 }
 
 func proxyHTTPConnection(conn net.Conn) {
+	defer conn.Close()
 	rAddr := conn.RemoteAddr().String()
 	reqPacket, err := proxyRequestReader(&conn)
 	if err != nil {
@@ -80,21 +79,25 @@ func proxyHTTPConnection(conn net.Conn) {
 }
 
 func proxyRequestReader(conn *net.Conn) ([]byte, error) {
+	buffer := make([]byte, configs.CERBERUSHEADERSIZE+configs.HTTPHEADERSIZE)
 	reader := bufio.NewReader(*conn)
-	var readerBuffer bytes.Buffer
-	for {
-		reqPacket := make([]byte, 20)
-		n, err := reader.Read(reqPacket)
-		if err != nil {
-			if err == io.EOF {
-				break
-			} else {
-				return []byte{}, err
-			}
-		}
-		readerBuffer.Write(reqPacket[:n])
-	}
-	return readerBuffer.Bytes(), nil
+	n, err := reader.Read(buffer)
+	return buffer[:n], err
+
+	// var readerBuffer bytes.Buffer
+	// buffer := make([]byte, 60)
+	// reader := bufio.NewReader(*conn)
+	// for {
+	// 	n, err := reader.Read(buffer)
+	// 	if err != nil {
+	// 		if err == io.EOF {
+	// 			break
+	// 		}
+	// 		return []byte{}, err
+	// 	}
+	// 	readerBuffer.Write(buffer[:n])
+	// }
+	// return readerBuffer.Bytes(), nil
 }
 
 func proxyResponseWriter(conn *net.Conn, data []byte) (n int, err error) {
