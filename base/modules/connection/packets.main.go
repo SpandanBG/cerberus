@@ -1,10 +1,9 @@
 package connection
 
 import (
+	"../utils"
 	"crypto/rsa"
 	"encoding/json"
-
-	"../utils"
 )
 
 type Header struct {
@@ -26,7 +25,7 @@ func GeneratePacket(header *Header, key *rsa.PublicKey, body []byte) ([]byte, er
 	if key == nil {
 		keyCopy = []byte{}
 	} else {
-		keyCopy, _ = json.Marshal(*key)
+		keyCopy, _ = json.Marshal(key)
 	}
 	head := CreateHeaderByte(header)
 	packet := Packet{Header: head, Key: keyCopy, Body: body}
