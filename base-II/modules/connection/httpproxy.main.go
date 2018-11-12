@@ -22,7 +22,6 @@ type PseudoRequest struct {
 	MultipartForm    *multipart.Form
 	Trailer          http.Header
 	RemoteAddr       string
-	RequestURI       string
 	TLS              *tls.ConnectionState
 	Response         *PseudoResponse //*http.Response
 }
@@ -119,7 +118,6 @@ func PseudoRequestToRequest(preq *PseudoRequest) (req *http.Request, err error) 
 	req.MultipartForm = preq.MultipartForm
 	req.Trailer = preq.Trailer
 	req.RemoteAddr = preq.RemoteAddr
-	// req.RequestURI = preq.RequestURI
 	req.TLS = preq.TLS
 	if preq.Response != nil {
 		res, err := PseudoResponseToResponse(preq.Response)

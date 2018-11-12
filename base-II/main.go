@@ -88,7 +88,7 @@ func proxyRequestReader(conn *net.Conn) ([]byte, error) {
 		if err != nil {
 			if err == io.EOF {
 				break
-			} else if err != nil {
+			} else {
 				return []byte{}, err
 			}
 		}
