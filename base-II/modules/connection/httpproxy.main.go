@@ -22,7 +22,6 @@ type PseudoRequest struct {
 	MultipartForm    *multipart.Form
 	Trailer          http.Header
 	RemoteAddr       string
-	RequestURI       string
 	TLS              *tls.ConnectionState
 	Response         *PseudoResponse //*http.Response
 }
@@ -47,9 +46,10 @@ type PseudoResponse struct {
 
 // RequestToPseudoRequest : Converts http.Request to PseudoRequest
 func RequestToPseudoRequest(req *http.Request) (preq *PseudoRequest, err error) {
+	preq = &PseudoRequest{}
 	preq.Method = req.Method
 	preq.URL = req.URL.String()
-	_, err = req.Body.Read(preq.Body)
+	preq.Body, err = ioutil.ReadAll(req.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func RequestToPseudoRequest(req *http.Request) (preq *PseudoRequest, err error) 
 	preq.MultipartForm = req.MultipartForm
 	preq.Trailer = req.Trailer
 	preq.RemoteAddr = req.RemoteAddr
-	preq.RequestURI = req.RequestURI
+	// preq.RequestURI = req.RequestURI
 	preq.TLS = req.TLS
 	if req.Response != nil {
 		pres, err := ResponseToPseudoResponse(req.Response)
@@ -75,13 +75,14 @@ func RequestToPseudoRequest(req *http.Request) (preq *PseudoRequest, err error) 
 
 // ResponseToPseudoResponse : Converts http.Response to PseudoResponse
 func ResponseToPseudoResponse(res *http.Response) (pres *PseudoResponse, err error) {
+	pres = &PseudoResponse{}
 	pres.Status = res.Status
 	pres.StatusCode = res.StatusCode
 	pres.Proto = res.Proto
 	pres.ProtoMajor = res.ProtoMajor
 	pres.ProtoMinor = res.ProtoMinor
 	pres.Header = res.Header
-	_, err = res.Body.Read(pres.Body)
+	pres.Body, err = ioutil.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -103,6 +104,7 @@ func ResponseToPseudoResponse(res *http.Response) (pres *PseudoResponse, err err
 
 // PseudoRequestToRequest : Converts PseudoRequest to http.Request
 func PseudoRequestToRequest(preq *PseudoRequest) (req *http.Request, err error) {
+	req = &http.Request{}
 	bodyBuffer := bytes.NewBuffer(preq.Body)
 	req, err = http.NewRequest(preq.Method, preq.URL, bodyBuffer)
 	if err != nil {
@@ -116,7 +118,6 @@ func PseudoRequestToRequest(preq *PseudoRequest) (req *http.Request, err error) 
 	req.MultipartForm = preq.MultipartForm
 	req.Trailer = preq.Trailer
 	req.RemoteAddr = preq.RemoteAddr
-	req.RequestURI = preq.RequestURI
 	req.TLS = preq.TLS
 	if preq.Response != nil {
 		res, err := PseudoResponseToResponse(preq.Response)
@@ -130,6 +131,7 @@ func PseudoRequestToRequest(preq *PseudoRequest) (req *http.Request, err error) 
 
 // PseudoResponseToResponse : Converts PseudoResponse to http.Response
 func PseudoResponseToResponse(pres *PseudoResponse) (res *http.Response, err error) {
+	res = &http.Response{}
 	res.Status = pres.Status
 	res.StatusCode = pres.StatusCode
 	res.Proto = pres.Proto
